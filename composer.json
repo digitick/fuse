@@ -1,12 +1,17 @@
 {
-  "name": "Digitick/fuse",
+  "name": "digitick/fuse",
   "description": "External service accessor",
   "minimum-stability": "dev",
+  "prefer-stable" : true,
   "license": "Apache 2",
   "authors": [
     {
       "name": "Josselin Donnat",
       "email": "josselin.donnat@digitick.com"
+    }
+    {
+      "name": "Alexandre Del Vecchio",
+      "email": "alexandre.del-vecchio@digitick.com"
     }
   ],
   "autoload": {
