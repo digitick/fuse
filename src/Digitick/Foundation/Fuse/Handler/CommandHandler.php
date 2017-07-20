@@ -16,11 +16,11 @@ use Psr\SimpleCache\CacheInterface;
 class CommandHandler
 {
     /** @var  CircuitBreakerInterface */
-    private $circuitBreaker;
+    protected $circuitBreaker;
     /** @var  CacheInterface */
-    private $cacheManager;
+    protected $cacheManager;
     /** @var  LoggerInterface */
-    private $logger;
+    protected $logger;
 
     /**
      * CommandHandler constructor.
@@ -34,7 +34,8 @@ class CommandHandler
         $this->logger = $logger;
     }
 
-    public function execute (AbstractCommand $command) {
+    public function execute(AbstractCommand $command)
+    {
         $result = null;
         $cacheKey = null;
         $isCacheable = $this->isCacheable($command);
@@ -43,7 +44,7 @@ class CommandHandler
             $command->setLogger($this->logger);
         }
 
-        $this->info("Exceute command " . get_class($command));
+        $this->info("Execute command " . get_class($command));
 
         if ($isCacheable) {
             $cacheKey = $this->getCommandCacheKey($command);
@@ -86,50 +87,60 @@ class CommandHandler
         return $result;
     }
 
-    protected function isCacheable (AbstractCommand $command) {
+    protected function isCacheable(AbstractCommand $command)
+    {
         return $command instanceof CacheableCommand;
     }
 
-    protected function executeCommand (AbstractCommand $command) {
-        $this->debug("Running command " . get_class($command));
-        return $command->run();
+    protected function info($message)
+    {
+        $this->log(LogLevel::INFO, $message);
     }
 
-    protected function getCommandCacheKey (AbstractCommand $command) {
+    protected function log($level = LogLevel::INFO, $message)
+    {
+        if ($this->logger == null)
+            return;
+        $this->logger->log($level, $message);
+    }
+
+    protected function getCommandCacheKey(AbstractCommand $command)
+    {
         if (!$this->isCacheable($command)) {
             throw new \RuntimeException("Getting cache from non cacheable command");
         }
         return sprintf("%s:%s", $command->getKey(), $command->getCacheKey());
     }
 
-    protected function critical ($message) {
-        $this->log(LogLevel::CRITICAL, $message);
+    protected function executeCommand(AbstractCommand $command)
+    {
+        $this->debug("Running command " . get_class($command));
+        return $command->run();
     }
 
-    protected function error ($message) {
-        $this->log(LogLevel::ERROR, $message);
-    }
-
-    protected function warning ($message) {
-        $this->log(LogLevel::WARNING, $message);
-    }
-
-    protected function notice ($message) {
-        $this->log(LogLevel::NOTICE, $message);
-    }
-
-    protected function info ($message) {
-        $this->log(LogLevel::INFO, $message);
-    }
-
-    protected function debug ($message) {
+    protected function debug($message)
+    {
         $this->log(LogLevel::DEBUG, $message);
     }
 
-    protected function log ($level = LogLevel::INFO, $message) {
-        if ($this->logger == null)
-            return;
-        $this->logger->log ($level, $message);
+    protected function critical($message)
+    {
+        $this->log(LogLevel::CRITICAL, $message);
+    }
+
+    protected function error($message)
+    {
+        $this->log(LogLevel::ERROR, $message);
+    }
+
+    protected function warning($message)
+    {
+        $this->log(LogLevel::WARNING, $message);
+    }
+
+    protected function notice($message)
+    {
+        $this->log(LogLevel::NOTICE, $message);
     }
 
 }
