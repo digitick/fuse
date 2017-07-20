@@ -32,84 +32,12 @@ class SoapCommand extends AbstractCommand
     }
 
     /**
-     * @return SoapClient
-     */
-    public function getSoapClient()
-    {
-        return $this->soapClient;
-    }
-
-    /**
-     * @param SoapClient $soapClient
-     * @return $this
-     */
-    public function setSoapClient(SoapClient $soapClient)
-    {
-        $this->soapClient = $soapClient;
-        return $this;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getMethodName()
-    {
-        return $this->methodName;
-    }
-
-    /**
-     * @param $methodName
-     * @return $this
-     */
-    public function setMethodName($methodName)
-    {
-        $this->methodName = $methodName;
-        return $this;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getHeaders()
-    {
-        return $this->headers;
-    }
-
-    /**
-     * @param array $headers
-     * @return $this
-     */
-    public function setHeaders(array $headers)
-    {
-        $this->headers = $headers;
-        return $this;
-    }
-
-    /**
      * @param \SoapHeader $header
      * @return $this
      */
     public function addHeader(\SoapHeader $header)
     {
         $this->headers[] = $header;
-        return $this;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getQuery()
-    {
-        return $this->query;
-    }
-
-    /**
-     * @param mixed $query
-     * @return SoapCommand
-     */
-    public function setQuery(array $query)
-    {
-        $this->query = $query;
         return $this;
     }
 
@@ -177,5 +105,77 @@ class SoapCommand extends AbstractCommand
         $this->responseHeaders = $this->soapClient->__getLastResponseHeaders();
 
         return $this->content;
+    }
+
+    /**
+     * @return SoapClient
+     */
+    public function getSoapClient()
+    {
+        return $this->soapClient;
+    }
+
+    /**
+     * @param SoapClient $soapClient
+     * @return $this
+     */
+    public function setSoapClient(SoapClient $soapClient)
+    {
+        $this->soapClient = $soapClient;
+        return $this;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getHeaders()
+    {
+        return $this->headers;
+    }
+
+    /**
+     * @param array $headers
+     * @return $this
+     */
+    public function setHeaders(array $headers)
+    {
+        $this->headers = $headers;
+        return $this;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getMethodName()
+    {
+        return $this->methodName;
+    }
+
+    /**
+     * @param $methodName
+     * @return $this
+     */
+    public function setMethodName($methodName)
+    {
+        $this->methodName = $methodName;
+        return $this;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getQuery()
+    {
+        return $this->query;
+    }
+
+    /**
+     * @param mixed $query
+     * @return SoapCommand
+     */
+    public function setQuery(array $query)
+    {
+        $this->query = $query;
+        return $this;
     }
 }

@@ -7,10 +7,10 @@ namespace Digitick\Foundation\Fuse\Handler;
 use Digitick\Foundation\Fuse\CircuitBreaker\CircuitBreakerInterface;
 use Digitick\Foundation\Fuse\Command\AbstractCommand;
 use Digitick\Foundation\Fuse\Command\Soap\SoapCommand;
-use SoapClient;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 use Psr\SimpleCache\CacheInterface;
+use SoapClient;
 
 class SoapCommandHandler extends CommandHandler
 {
@@ -34,7 +34,7 @@ class SoapCommandHandler extends CommandHandler
 
     protected function executeCommand(AbstractCommand $command)
     {
-        $command->setSoapClient ($this->soapClient);
+        $command->setSoapClient($this->soapClient);
         return parent::executeCommand($command);
     }
 

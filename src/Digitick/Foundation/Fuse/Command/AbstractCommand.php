@@ -56,14 +56,27 @@ abstract class AbstractCommand
     }
 
 
-    abstract public function run ();
+    abstract public function run();
 
     /**
      * @return mixed
      */
-    public function onServiceUnavailable () {
+    public function onServiceUnavailable()
+    {
         $this->debug("Default handler for callback onServiceUnavailable");
         return null;
+    }
+
+    protected function debug($message)
+    {
+        $this->log(LogLevel::DEBUG, $message);
+    }
+
+    protected function log($level = LogLevel::INFO, $message)
+    {
+        if ($this->logger == null)
+            return;
+        $this->logger->log($level, sprintf("[%s][%s] %s", get_class($this), $this->key, $message));
     }
 
     /**
@@ -71,7 +84,8 @@ abstract class AbstractCommand
      * @return mixed
      * @throws LogicException
      */
-    public function onLogicError (LogicException $exception) {
+    public function onLogicError(LogicException $exception)
+    {
         $this->debug("Default handler for callback onLogicError");
         throw $exception;
     }
@@ -81,38 +95,34 @@ abstract class AbstractCommand
      * @return mixed
      * @throws ServiceException
      */
-    public function onServiceError (ServiceException $exception) {
+    public function onServiceError(ServiceException $exception)
+    {
         $this->debug("Default handler for callback onServiceError");
         throw $exception;
     }
 
-    protected function critical ($message) {
+    protected function critical($message)
+    {
         $this->log(LogLevel::CRITICAL, $message);
     }
 
-    protected function error ($message) {
+    protected function error($message)
+    {
         $this->log(LogLevel::ERROR, $message);
     }
 
-    protected function warning ($message) {
+    protected function warning($message)
+    {
         $this->log(LogLevel::WARNING, $message);
     }
 
-    protected function notice ($message) {
+    protected function notice($message)
+    {
         $this->log(LogLevel::NOTICE, $message);
     }
 
-    protected function info ($message) {
+    protected function info($message)
+    {
         $this->log(LogLevel::INFO, $message);
-    }
-
-    protected function debug ($message) {
-        $this->log(LogLevel::DEBUG, $message);
-    }
-
-    protected function log ($level = LogLevel::INFO, $message) {
-        if ($this->logger == null)
-            return;
-        $this->logger->log ($level, sprintf("[%s][%s] %s", get_class($this), $this->key, $message));
     }
 }
