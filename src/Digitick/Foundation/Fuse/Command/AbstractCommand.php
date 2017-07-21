@@ -9,13 +9,15 @@ use Digitick\Foundation\Fuse\Exception\ServiceException;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 
-abstract class AbstractCommand
+abstract class AbstractCommand implements CacheableCommand
 {
     /** @var  string */
     protected $key;
 
     /** @var LoggerInterface */
     protected $logger = null;
+
+    protected $ttl = 10;
 
     /**
      * AbstractCommand constructor.
@@ -27,6 +29,8 @@ abstract class AbstractCommand
         $this->key = $key;
         $this->setLogger($logger);
     }
+
+    abstract public function getCacheKey();
 
     /**
      * @return null
@@ -46,6 +50,21 @@ abstract class AbstractCommand
         return $this;
     }
 
+    /**
+     * @return int
+     */
+    public function getTtl()
+    {
+        return $this->ttl;
+    }
+
+    /**
+     * @param $ttl
+     */
+    public function setTtl($ttl)
+    {
+        $this->ttl = $ttl;
+    }
 
     /**
      * @return string
@@ -54,9 +73,6 @@ abstract class AbstractCommand
     {
         return $this->key;
     }
-
-
-    abstract public function run();
 
     /**
      * @return mixed

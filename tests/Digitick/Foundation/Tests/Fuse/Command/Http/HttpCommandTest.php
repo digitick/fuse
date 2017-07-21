@@ -5,16 +5,16 @@ namespace Digitick\Foundation\Tests\Fuse\Command\Http;
 
 
 use Digitick\Foundation\Fuse\Command\Http\HttpCommand;
+use Digitick\Foundation\Fuse\Command\Http\MacroHttpCommand;
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
-use GuzzleHttp\Promise\Promise;
 use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 
-class HttpCommandTest extends \PHPUnit_Framework_TestCase
+class HttpCommandTest extends \PHPUnit\Framework\TestCase
 {
     /**
      * @dataProvider exceptionProvider
@@ -37,20 +37,22 @@ class HttpCommandTest extends \PHPUnit_Framework_TestCase
 
         $command->setHttpClient($httpClient);
 
-        $this->setExpectedException(interface_exists('Throwable') ? 'Throwable' : $exceptionClass);
+        $this->expectException($exceptionClass);
 
-        $result = $command->run();
+        $command->send();
     }
 
     private function getHttpClient($code, $body = '', &$history = null, &$httpMock = null)
     {
-        $httpMock = new MockHandler([
-            new Response(
+        $responses = [];
+        for ($i = 0; $i < 5; $i++) {
+            $responses[] = new Response(
                 $code,
                 ["x-response" => "test-u"],
                 $body
-            )
-        ]);
+            );
+        }
+        $httpMock = new MockHandler($responses);
 
         $historyContainer = [];
         $history = Middleware::history($historyContainer);
@@ -79,11 +81,6 @@ class HttpCommandTest extends \PHPUnit_Framework_TestCase
         ];
     }
 
-    /*
-     * Tests à faire :
-     *
-     */
-
     public function testCall200()
     {
         $validResult = "Response from server";
@@ -105,7 +102,8 @@ class HttpCommandTest extends \PHPUnit_Framework_TestCase
 
         $command->setHttpClient($httpClient);
 
-        $result = $command->run();
+        $result = $command->send();
+        /** @var Request $request */
         $request = $mockClient->getLastRequest();
 
         $this->assertEquals($host, $request->getUri()->getHost());
@@ -119,12 +117,7 @@ class HttpCommandTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(200, $command->getStatusCode());
     }
 
-    /*
-     * Tests à faire :
-     *
-     */
-
-    public function testCall200Async()
+    public function testAsync()
     {
         $validResult = "Response from server";
         $host = "www.test.com";
@@ -132,29 +125,54 @@ class HttpCommandTest extends \PHPUnit_Framework_TestCase
         $path = "/unit/test";
         $scheme = "http";
 
-        /** @var Promise $promise */
-        $promises = [];
-        for($i=0; $i<5; $i++) {
-            $mockClient = null;
+        $mockClient = null;
+        /** @var Middleware $history */
+        $history = null;
 
-            /** @var Middleware $history */
-            $history = null;
-            $httpClient = $this->getHttpClient(200, $validResult, $history, $mockClient);
-            $command = new HttpCommand("test");
+        $macroHttpCommand = new MacroHttpCommand('foo');
+        for ($i = 0; $i < 5; $i++) {
+            $command = new HttpCommand("test_" . $i);
             $command
                 ->setHost($host)
                 ->setPort($port)
                 ->setPath($path)
                 ->setScheme($scheme);
+            $macroHttpCommand->addCommand($command);
 
-            $command->setHttpClient($httpClient);
-            $promises[] = $command->buildPromise();
         }
-        \GuzzleHttp\Promise\unwrap($promises);
+        $macroHttpCommand->setHttpClient($this->getHttpClient(200, $validResult, $history, $mockClient));
+        /** @var \Generator $responses */
+        $responses = $macroHttpCommand->sendAsync();
+        while ($response = $responses->current()) {
+            $this->assertEquals($validResult, $response);
+            $responses->next();
+        }
+    }
 
-        for($i=0; $i<5; $i++) {
-            $this->assertEquals(PromiseInterface::FULFILLED, $promises[$i]->getState());
-        }
+    public function testPromise()
+    {
+        $validResult = "Response from server";
+        $host = "www.test.com";
+        $port = "8080";
+        $path = "/unit/test";
+        $scheme = "http";
+
+        $mockClient = null;
+
+        /** @var Middleware $history */
+        $history = null;
+        $httpClient = $this->getHttpClient(200, $validResult, $history, $mockClient);
+        $command = new HttpCommand("test");
+        $command
+            ->setHost($host)
+            ->setPort($port)
+            ->setPath($path)
+            ->setScheme($scheme);
+
+        $command->setHttpClient($httpClient);
+        $promise = $command->promise();
+        $promise->wait();
+        $this->assertEquals(PromiseInterface::FULFILLED, $promise->getState());
     }
 
     public function methodProvider()
@@ -194,7 +212,7 @@ class HttpCommandTest extends \PHPUnit_Framework_TestCase
 
         $command->setHttpClient($httpClient);
 
-        $result = $command->run();
+        $result = $command->send();
 
         $request = $mockClient->getLastRequest();
 
@@ -235,7 +253,7 @@ class HttpCommandTest extends \PHPUnit_Framework_TestCase
 
         $command->setHttpClient($httpClient);
 
-        $result = $command->run();
+        $result = $command->send();
 
         /** @var Request $request */
         $request = $mockClient->getLastRequest();
@@ -277,7 +295,7 @@ class HttpCommandTest extends \PHPUnit_Framework_TestCase
 
         $command->setHttpClient($httpClient);
 
-        $result = $command->run();
+        $result = $command->send();
 
         $request = $mockClient->getLastRequest();
         $this->assertEquals("tata", $request->getHeader("tonton")[0]);
@@ -316,7 +334,7 @@ class HttpCommandTest extends \PHPUnit_Framework_TestCase
 
         $command->setHttpClient($httpClient);
 
-        $result = $command->run();
+        $result = $command->send();
 
         $request = $mockClient->getLastRequest();
 
@@ -349,7 +367,7 @@ class HttpCommandTest extends \PHPUnit_Framework_TestCase
 
         $command->setHttpClient($httpClient);
 
-        $result = $command->run();
+        $result = $command->send();
 
         $request = $mockClient->getLastRequest();
 
@@ -374,6 +392,6 @@ class HttpCommandTest extends \PHPUnit_Framework_TestCase
             ->setPath($path)
             ->setScheme($scheme);
 
-        $result = $command->run();
+        $result = $command->send();
     }
 }

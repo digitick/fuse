@@ -7,7 +7,7 @@ namespace Digitick\Foundation\Tests\Fuse\Command;
 use Digitick\Foundation\Fuse\Exception\LogicException;
 use Digitick\Foundation\Fuse\Exception\ServiceException;
 
-class AbstractCommandTest extends \PHPUnit_Framework_TestCase
+class AbstractCommandTest extends \PHPUnit\Framework\TestCase
 {
     const CLASS_NAME = '\Digitick\Foundation\Fuse\Command\AbstractCommand';
 

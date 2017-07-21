@@ -8,18 +8,46 @@ use Digitick\Foundation\Fuse\Command\AbstractCommand;
 use SoapClient;
 use SoapFault;
 
+/**
+ * Class SoapCommand
+ * @package Digitick\Foundation\Fuse\Command\Soap
+ */
 class SoapCommand extends AbstractCommand
 {
+    /**
+     *
+     */
     const STATUS_SUCCESS = 200;
 
     /** @var  SoapClient */
     protected $soapClient = null;
+    /**
+     * @var
+     */
     protected $headers;
+    /**
+     * @var array
+     */
     protected $query = [];
+    /**
+     * @var
+     */
     protected $methodName;
+    /**
+     * @var
+     */
     protected $statusCode;
+    /**
+     * @var
+     */
     protected $content;
+    /**
+     * @var
+     */
     protected $responseHeaders;
+    /**
+     * @var
+     */
     protected $soapResponse;
 
     /**
@@ -73,7 +101,11 @@ class SoapCommand extends AbstractCommand
         return $this->soapResponse;
     }
 
-    public function run()
+    /**
+     * @return mixed
+     * @throws SoapFault
+     */
+    public function send()
     {
         if ($this->getSoapClient() === null) {
             throw new \RuntimeException();
@@ -177,5 +209,13 @@ class SoapCommand extends AbstractCommand
     {
         $this->query = $query;
         return $this;
+    }
+
+    /**
+     * @return null
+     */
+    public function getCacheKey()
+    {
+        return null;
     }
 }
