@@ -10,7 +10,7 @@ use GuzzleHttp\Stream\Stream;
 use GuzzleHttp\Subscriber\History;
 use GuzzleHttp\Subscriber\Mock;
 
-class SoapCommandTest extends \PHPUnit_Framework_TestCase
+class SoapCommandTest extends \PHPUnit\Framework\TestCase
 {
     /**
      *
@@ -26,7 +26,7 @@ class SoapCommandTest extends \PHPUnit_Framework_TestCase
 
         $this->expectException('\RuntimeException');
 
-        $command->run();
+        $command->send();
     }
 
     private function getSoapClient()
@@ -56,7 +56,7 @@ class SoapCommandTest extends \PHPUnit_Framework_TestCase
             ->setMethodName($methodName)
             ->setQuery([$getWeatherHttpPostIn]);
 
-        $result = $command->run();
+        $result = $command->send();
         $this->assertEquals($getWeatherHttpPostOut, $result);
     }
 
@@ -103,7 +103,7 @@ class SoapCommandTest extends \PHPUnit_Framework_TestCase
 
         $this->expectException('\RuntimeException');
 
-        $command->run();
+        $command->send();
     }
 
     public function methodProvider()

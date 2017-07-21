@@ -6,7 +6,7 @@ namespace Digitick\Foundation\Tests\Fuse\CircuitBreaker;
 
 use Digitick\Foundation\Fuse\CircuitBreaker\ApcCircuitBreaker;
 
-class ApcCircuitBreakerTest extends \PHPUnit_Framework_TestCase
+class ApcCircuitBreakerTest extends \PHPUnit\Framework\TestCase
 {
     public function testSingleIsAvailable()
     {

@@ -6,18 +6,46 @@ namespace Digitick\Foundation\Fuse\Command\Http;
 
 use Digitick\Foundation\Fuse\Command\Http\Exception\NonSerializableException;
 
-class RestCommand extends HttpCommand
+/**
+ * Class RestCommand
+ * @package Digitick\Foundation\Fuse\Command\Http
+ */
+class RestCommand extends HttpCommand implements HttpCommandInterface
 {
+    /**
+     *
+     */
     const OPERATION_CREATE = 'create';
+    /**
+     *
+     */
     const OPERATION_RETRIEVE = 'retrieve';
+    /**
+     *
+     */
     const OPERATION_UPDATE = 'update';
+    /**
+     *
+     */
     const OPERATION_DELETE = 'delete';
 
+    /**
+     * @var string
+     */
     protected $route = '/';
+    /**
+     * @var array
+     */
     protected $arguments;
 
+    /**
+     * @var
+     */
     protected $operation;
 
+    /**
+     * @var null
+     */
     protected $requestContent = null;
 
     /** @var string */
@@ -27,9 +55,14 @@ class RestCommand extends HttpCommand
     /** @var  \ReflectionClass */
     protected $reflection;
 
+    /**
+     * RestCommand constructor.
+     * @param string $key
+     * @param string $operation
+     * @param null $returnClass
+     */
     public function __construct($key, $operation = self::OPERATION_RETRIEVE, $returnClass = null)
     {
-
         parent::__construct($key);
 
         $this->route = '/';
@@ -97,7 +130,22 @@ class RestCommand extends HttpCommand
         return $this;
     }
 
-    public function run()
+    /**
+     * @return \GuzzleHttp\Promise\Promise|mixed
+     */
+    public function promise()
+    {
+        if ($this->request === null) {
+            $this->prepare();
+        }
+
+        return $this->promise();
+    }
+
+    /**
+     *
+     */
+    public function prepare()
     {
         $this->setPath($this->buildRoute());
 
@@ -105,18 +153,12 @@ class RestCommand extends HttpCommand
 
         $this->defineRequestContent();
 
-        $serialized = parent::run();
-
-        if ($this->implementSerializable) {
-            $instance = $this->reflection->newInstance();
-            $instance->unserialize($serialized);
-            return $instance;
-        }
-
-        return $serialized;
-
+        parent::prepare();
     }
 
+    /**
+     * @return string
+     */
     protected function buildRoute()
     {
         $route = $this->route;
@@ -139,6 +181,9 @@ class RestCommand extends HttpCommand
         return $route;
     }
 
+    /**
+     *
+     */
     private function defineHttpMethodFromOperation()
     {
         switch ($this->operation) {
@@ -157,6 +202,9 @@ class RestCommand extends HttpCommand
         }
     }
 
+    /**
+     *
+     */
     private function defineRequestContent()
     {
         $bodyData = $this->getRequestContent();
@@ -190,6 +238,9 @@ class RestCommand extends HttpCommand
         return $this;
     }
 
+    /**
+     *
+     */
     private function parseReturnClass()
     {
         if ($this->returnClass == null) {

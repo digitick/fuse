@@ -17,12 +17,12 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Exception\TransferException;
+use GuzzleHttp\Promise\Promise;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Uri;
-use GuzzleHttp\Stream\Stream;
 use Psr\Http\Message\ResponseInterface;
 
-class HttpCommand extends AbstractCommand
+class HttpCommand extends AbstractCommand implements HttpCommandInterface
 {
     const HTTP_METHOD_GET = 'GET';
     const HTTP_METHOD_POST = 'POST';
@@ -45,19 +45,10 @@ class HttpCommand extends AbstractCommand
     protected $password;
     protected $method = self::HTTP_METHOD_GET;
     protected $body = '';
-
+    protected $request = null;
     protected $statusCode;
     protected $content;
     protected $responseHeaders;
-
-    /**
-     * HttpCommand constructor.
-     * @param string $key
-     */
-    public function __construct($key)
-    {
-        parent::__construct($key);
-    }
 
     /**
      * @return mixed
@@ -119,54 +110,19 @@ class HttpCommand extends AbstractCommand
         return $this->responseHeaders;
     }
 
-    public function run()
+    public function send()
     {
         if ($this->getHttpClient() === null) {
             throw new \RuntimeException();
         }
-
-        $this->debug(sprintf("Create request with method=%s, scheme=%s, host=%s, port=%d, path=%s",
-            $this->getMethod(),
-            $this->getScheme(),
-            $this->getHost(),
-            $this->getPort(),
-            $this->getPath()
-        ));
-
-        $uri = new Uri();
-        $uri = $uri
-            ->withScheme($this->getScheme())
-            ->withHost($this->getHost())
-            ->withPort($this->getPort())
-            ->withPath($this->getPath());
-
-        $headers = [];
-        if ($this->headers != null)
-            $headers = $this->getHeaders();
-
-
-        // In case query is a string
-        if ($this->query != null && !is_array($this->getQuery()))
-            $uri = $uri->withQuery($this->getQuery());
-
-        $request = new Request
-        (
-            $this->getMethod(),
-            $uri,
-            $headers,
-            $this->getBody()
-        );
-
-        // In case query was not a string
-        $query = [];
-        if ($this->query != null && is_array($this->getQuery()))
-            $query['query'] = $this->getQuery();
-
+        if ($this->request === null) {
+            $this->prepare();
+        }
         try {
             $this->debug("Send request");
-            $response = $this->httpClient->send($request, $query);
+            $response = $this->httpClient->send($this->request);
         } catch (TransferException $exc) {
-            throw $this->ExceptionFactory($exc);
+            throw $this->exceptionFactory($exc);
         }
 
         $this->statusCode = $response->getStatusCode();
@@ -175,73 +131,6 @@ class HttpCommand extends AbstractCommand
         $this->responseHeaders = $response->getHeaders();
 
         return $this->content;
-    }
-
-    public function buildPromise()
-    {
-        if ($this->getHttpClient() === null) {
-            throw new \RuntimeException();
-        }
-
-        $this->debug(sprintf("Create request with method=%s, scheme=%s, host=%s, port=%d, path=%s",
-            $this->getMethod(),
-            $this->getScheme(),
-            $this->getHost(),
-            $this->getPort(),
-            $this->getPath()
-        ));
-
-        $uri = new Uri();
-        $uri = $uri
-            ->withScheme($this->getScheme())
-            ->withHost($this->getHost())
-            ->withPort($this->getPort())
-            ->withPath($this->getPath());
-
-        $headers = [];
-        if ($this->headers != null)
-            $headers = $this->getHeaders();
-
-
-        // In case query is a string
-        if ($this->query != null && !is_array($this->getQuery()))
-            $uri = $uri->withQuery($this->getQuery());
-
-        $request = new Request
-        (
-            $this->getMethod(),
-            $uri,
-            $headers,
-            $this->getBody()
-        );
-
-        // In case query was not a string
-        $query = [];
-        if ($this->query != null && is_array($this->getQuery()))
-            $query['query'] = $this->getQuery();
-
-        try {
-            $this->debug("Send request");
-            $promise = $this->httpClient->sendAsync($request, $query);
-            $promise->then
-            (
-                function(ResponseInterface $response) {
-                    sleep(2);
-                    $this->statusCode = $response->getStatusCode();
-                    $this->debug("Returned status code = " . $this->statusCode);
-                    $this->content = $response->getBody()->getContents();
-                    $this->responseHeaders = $response->getHeaders();
-                },
-                function (RequestException $e) {
-                    throw $this->ExceptionFactory(new TransferException($e->getMessage(), $e->getCode()));
-                }
-            );
-        } catch (TransferException $exc) {
-            throw $this->ExceptionFactory($exc);
-        }
-
-
-        return $promise;
     }
 
     /**
@@ -259,6 +148,45 @@ class HttpCommand extends AbstractCommand
     public function setHttpClient(Client $httpClient)
     {
         $this->httpClient = $httpClient;
+        return $this;
+    }
+
+    public function prepare()
+    {
+        $this->request = null;
+
+        $this->debug(sprintf("Create request with method=%s, scheme=%s, host=%s, port=%d, path=%s",
+            $this->getMethod(),
+            $this->getScheme(),
+            $this->getHost(),
+            $this->getPort(),
+            $this->getPath()
+        ));
+
+        $uri = new Uri();
+        $uri = $uri
+            ->withScheme($this->getScheme())
+            ->withHost($this->getHost())
+            ->withPort($this->getPort())
+            ->withPath($this->getPath());
+
+        $headers = [];
+        if ($this->headers != null)
+            $headers = $this->getHeaders();
+
+        if ($this->query != null) {
+            $uri = $uri->withQuery(http_build_query($this->getQuery()));
+        }
+        $request = new Request
+        (
+            $this->getMethod(),
+            $uri,
+            $headers,
+            $this->getBody()
+        );
+
+        $this->request = $request;
+
         return $this;
     }
 
@@ -379,10 +307,10 @@ class HttpCommand extends AbstractCommand
     }
 
     /**
-     * @param mixed $query
+     * @param array $query
      * @return $this
      */
-    public function setQuery($query)
+    public function setQuery(array $query)
     {
         $this->query = $query;
         return $this;
@@ -406,7 +334,7 @@ class HttpCommand extends AbstractCommand
         return $this;
     }
 
-    private function ExceptionFactory(TransferException $exc)
+    private function exceptionFactory(TransferException $exc)
     {
         $this->error(sprintf("Transfer exception caught. Type : %s, status code = %s, message = %s",
                 get_class($exc),
@@ -467,5 +395,48 @@ class HttpCommand extends AbstractCommand
         }
 
         return $thrownException;
+    }
+
+    public function sendAsync()
+    {
+        /** @var Promise $promise */
+        $promise = $this->promise();
+        return $promise->wait();
+    }
+
+    public function promise()
+    {
+        if ($this->getHttpClient() === null) {
+            throw new \RuntimeException();
+        }
+        if ($this->request === null) {
+            $this->prepare();
+        }
+        try {
+            $this->debug("Send request");
+            /** @var Promise $promise */
+            $promise = $this->httpClient->sendAsync($this->request);
+            $promise->then
+            (
+                function (ResponseInterface $response) {
+                    $this->statusCode = $response->getStatusCode();
+                    $this->debug("Returned status code = " . $this->statusCode);
+                    $this->content = $response->getBody()->getContents();
+                    $this->responseHeaders = $response->getHeaders();
+                },
+                function (RequestException $e) {
+                    throw $this->exceptionFactory(new TransferException($e->getMessage(), $e->getCode()));
+                }
+            );
+        } catch (TransferException $exc) {
+            throw $this->exceptionFactory($exc);
+        }
+
+        return $promise;
+    }
+
+    public function getCacheKey()
+    {
+        return null;
     }
 }
