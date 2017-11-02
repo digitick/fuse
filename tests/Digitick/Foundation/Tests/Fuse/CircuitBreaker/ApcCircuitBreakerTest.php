@@ -6,15 +6,17 @@ namespace Digitick\Foundation\Tests\Fuse\CircuitBreaker;
 
 use Digitick\Foundation\Fuse\CircuitBreaker\ApcCircuitBreaker;
 
-class ApcCircuitBreakerTest extends \PHPUnit_Framework_TestCase
+class ApcCircuitBreakerTest extends \PHPUnit\Framework\TestCase
 {
-    public function testSingleIsAvailable () {
+    public function testSingleIsAvailable()
+    {
         $instance = new ApcCircuitBreaker(3, 10);
 
         $this->assertTrue($instance->isAvailable("test"));
     }
 
-    public function testBrokenCircuit () {
+    public function testBrokenCircuit()
+    {
         $retryTimeout = 3;
         $key = 'test';
 
@@ -29,7 +31,7 @@ class ApcCircuitBreakerTest extends \PHPUnit_Framework_TestCase
         $instance->reportFailure($key);
         $this->assertFalse($instance->isAvailable($key));
 
-        sleep (1);
+        sleep(1);
         $this->assertFalse($instance->isAvailable($key));
 
         sleep($retryTimeout);
@@ -45,7 +47,8 @@ class ApcCircuitBreakerTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue($instance->isAvailable($key));
     }
 
-    public function testSetServiceSettings () {
+    public function testSetServiceSettings()
+    {
         $retryTimeout = 3;
         $maxFail = 3;
         $key1 = 'test1';

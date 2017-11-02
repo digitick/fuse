@@ -6,10 +6,11 @@ namespace Digitick\Foundation\Tests\Fuse\Command\Http;
 use Digitick\Foundation\Fuse\Command\Http\HttpCommand;
 use Digitick\Foundation\Fuse\Command\Http\RestCommand;
 use GuzzleHttp\Client;
-use GuzzleHttp\Message\Response;
-use GuzzleHttp\Stream\Stream;
-use GuzzleHttp\Subscriber\History as History;
-use GuzzleHttp\Subscriber\Mock;
+use GuzzleHttp\Handler\MockHandler;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Middleware;
+use GuzzleHttp\Psr7\Response;
+
 
 class Dummy implements \Serializable
 {
@@ -29,70 +30,86 @@ class Dummy implements \Serializable
      */
     public function unserialize($serialized)
     {
-       $this->unserializeData = $serialized;
+        $this->unserializeData = $serialized;
     }
 
 }
 
 class RestCommandTest extends \PHPUnit_Framework_TestCase
 {
-    private function getHttpClient ($code, $body = '', &$history = null) {
-        $httpClient = new Client();
-        $httpMock = new Mock([
-            new Response(
-                $code,
-                ["x-response" => "test-u"],
-                Stream::factory($body)
-            )
-        ]);
-        $history = new History();
-        $httpClient->getEmitter()->attach($httpMock);
-        $httpClient->getEmitter()->attach($history);
-        return $httpClient;
-    }
-
-    public function testSimpleRetrieve () {
-        /** @var History $history */
+    public function testSimpleRetrieve()
+    {
+        /** @var Middleware $history */
         $history = null;
-        $httpClient = $this->getHttpClient(200, 'tonton', $history);
+        $httpMock = null;
+        $host = "www.test.com";
+        $httpClient = $this->getHttpClient(200, 'tonton', $history, $httpMock);
         $route = '/tonton';
 
         $command = new RestCommand("rest", RestCommand::OPERATION_RETRIEVE);
         $command->setHttpClient($httpClient);
+        $command->setHost($host);
         $command->setRoute($route);
 
         $return = $command->run();
-        $request = $history->getLastRequest();
+        $request = $httpMock->getLastRequest();
 
         $this->assertEquals("tonton", $return);
     }
 
-    public function testRouting () {
-        /** @var History $history */
-        $history = null;
-        $httpClient = $this->getHttpClient(200, 'tonton', $history);
-        $route = '/tonton/{param1}/tata/{param2}';
+    private function getHttpClient($code, $body = '', &$history = null, &$httpMock = null)
+    {
+        $httpMock = new MockHandler([
+            new Response(
+                $code,
+                ["x-response" => "test-u"],
+                $body
+            )
+        ]);
+        $historyContainer = [];
+        $history = Middleware::history($historyContainer);
+        // Create a handler stack that has all of the default middlewares attached
+        $handler = HandlerStack::create();
+        $handler->setHandler($history);
+        $handler->setHandler($httpMock);
 
+        $httpClient = new Client(['handler' => $handler]);
+        return $httpClient;
+    }
+
+    public function testRouting()
+    {
+        /** @var Middleware $history */
+        $history = null;
+        $httpMock = null;
+        $host = "www.test.com";
+        $httpClient = $this->getHttpClient(200, 'tonton', $history, $httpMock);
+        $route = '/tonton/{param1}/tata/{param2}';
         $command = new RestCommand("rest", RestCommand::OPERATION_RETRIEVE);
         $command->setHttpClient($httpClient);
+        $command->setHost($host);
         $command->setRoute($route);
         $command->bindArgument("param1", "val1");
         $command->bindArgument("param2", "val2");
 
         $return = $command->run();
-        $request = $history->getLastRequest();
+        $request = $httpMock->getLastRequest();
 
-        $this->assertEquals("/tonton/val1/tata/val2", $request->getPath());
+        $this->assertEquals("/tonton/val1/tata/val2", $request->getUri()->getPath());
     }
 
-    public function testRoutingWithQuery () {
-        /** @var History $history */
+    public function testRoutingWithQuery()
+    {
+        /** @var Middleware $history */
         $history = null;
-        $httpClient = $this->getHttpClient(200, 'tonton', $history);
+        $httpMock = null;
+        $host = "www.test.com";
+        $httpClient = $this->getHttpClient(200, 'tonton', $history, $httpMock);
         $route = '/tonton/{param1}/tata/{param2}';
 
         $command = new RestCommand("rest", RestCommand::OPERATION_RETRIEVE);
         $command->setHttpClient($httpClient);
+        $command->setHost($host);
         $command->setRoute($route);
         $command->bindArgument("param1", "val1");
         $command->bindArgument("param2", "val2");
@@ -100,125 +117,151 @@ class RestCommandTest extends \PHPUnit_Framework_TestCase
         $command->bindArgument("param4", "val4");
 
         $return = $command->run();
-        $request = $history->getLastRequest();
-        $this->assertEquals("val3", $request->getQuery()->get('param3'));
-        $this->assertEquals("val4", $request->getQuery()->get('param4'));
-        $this->assertEquals("/tonton/val1/tata/val2", $request->getPath());
+        $request = $httpMock->getLastRequest();
+        parse_str($request->getUri()->getQuery(), $lastRequestQuery);
+        $this->assertEquals("val3", $lastRequestQuery['param3']);
+        $this->assertEquals("val4", $lastRequestQuery['param4']);
+        $this->assertEquals("/tonton/val1/tata/val2", $request->getUri()->getPath());
     }
 
-    public function testHttpMethodForRetrieve () {
-        /** @var History $history */
+    public function testHttpMethodForRetrieve()
+    {
+        /** @var Middleware $history */
         $history = null;
-        $httpClient = $this->getHttpClient(200, 'tonton', $history);
+        $httpMock = null;
+        $host = "www.test.com";
+        $httpClient = $this->getHttpClient(200, 'tonton', $history, $httpMock);
         $route = '/tonton';
 
         $command = new RestCommand("rest", RestCommand::OPERATION_RETRIEVE);
         $command->setHttpClient($httpClient);
+        $command->setHost($host);
         $command->setRoute($route);
 
         $return = $command->run();
-        $request = $history->getLastRequest();
+        $request = $httpMock->getLastRequest();
         $this->assertEquals(HttpCommand::HTTP_METHOD_GET, $request->getMethod());
     }
 
-    public function testHttpMethodForCreate () {
-        /** @var History $history */
+    public function testHttpMethodForCreate()
+    {
+        /** @var Middleware $history */
         $history = null;
-        $httpClient = $this->getHttpClient(200, 'tonton', $history);
+        $httpMock = null;
+        $host = "www.test.com";
+        $httpClient = $this->getHttpClient(200, 'tonton', $history, $httpMock);
         $route = '/tonton';
 
         $command = new RestCommand("rest", RestCommand::OPERATION_CREATE);
         $command->setHttpClient($httpClient);
+        $command->setHost($host);
         $command->setRoute($route);
 
         $return = $command->run();
-        $request = $history->getLastRequest();
+        $request = $httpMock->getLastRequest();
         $this->assertEquals(HttpCommand::HTTP_METHOD_POST, $request->getMethod());
     }
 
-    public function testHttpMethodForUpdate () {
-        /** @var History $history */
+    public function testHttpMethodForUpdate()
+    {
+        /** @var Middleware $history */
         $history = null;
-        $httpClient = $this->getHttpClient(200, 'tonton', $history);
+        $httpMock = null;
+        $host = "www.test.com";
+        $httpClient = $this->getHttpClient(200, 'tonton', $history, $httpMock);
         $route = '/tonton';
 
         $command = new RestCommand("rest", RestCommand::OPERATION_UPDATE);
         $command->setHttpClient($httpClient);
+        $command->setHost($host);
         $command->setRoute($route);
 
         $return = $command->run();
-        $request = $history->getLastRequest();
+        $request = $httpMock->getLastRequest();
         $this->assertEquals(HttpCommand::HTTP_METHOD_PUT, $request->getMethod());
     }
 
-    public function testHttpMethodForDelete () {
-        /** @var History $history */
+    public function testHttpMethodForDelete()
+    {
+        /** @var Middleware $history */
         $history = null;
-        $httpClient = $this->getHttpClient(200, 'tonton', $history);
+        $httpMock = null;
+        $host = "www.test.com";
+        $httpClient = $this->getHttpClient(200, 'tonton', $history, $httpMock);
         $route = '/tonton';
 
         $command = new RestCommand("rest", RestCommand::OPERATION_DELETE);
         $command->setHttpClient($httpClient);
+        $command->setHost($host);
         $command->setRoute($route);
 
         $return = $command->run();
-        $request = $history->getLastRequest();
+        $request = $httpMock->getLastRequest();
         $this->assertEquals(HttpCommand::HTTP_METHOD_DELETE, $request->getMethod());
     }
 
-    public function testStringRequestContent () {
-        /** @var History $history */
+    public function testStringRequestContent()
+    {
+        /** @var Middleware $history */
         $history = null;
-        $httpClient = $this->getHttpClient(200, 'tonton', $history);
+        $httpMock = null;
+        $host = "www.test.com";
+        $httpClient = $this->getHttpClient(200, 'tonton', $history, $httpMock);
         $route = '/tonton';
         $data = "Body data for request";
 
         $command = new RestCommand("rest", RestCommand::OPERATION_CREATE);
         $command
             ->setHttpClient($httpClient)
+            ->setHost($host)
             ->setRoute($route)
-            ->setRequestContent($data)
-        ;
+            ->setRequestContent($data);
 
         $return = $command->run();
-        $request = $history->getLastRequest();
+        $request = $httpMock->getLastRequest();
 
         $this->assertEquals($data, $request->getBody());
 
     }
 
-    public function testObjectRequestContent () {
-        /** @var History $history */
+    public function testObjectRequestContent()
+    {
+        /** @var Middleware $history */
         $history = null;
-        $httpClient = $this->getHttpClient(200, 'tonton', $history);
+        $httpMock = null;
+        $host = "www.test.com";
+        $httpClient = $this->getHttpClient(200, 'tonton', $history, $httpMock);
         $route = '/tonton';
 
         $serializedString = 'data serialized';
         $dataObject = $this->prophesize('Serializable');
-        $dataObject->serialize ()->willReturn ($serializedString);
+        $dataObject->serialize()->willReturn($serializedString);
 
 
         $command = new RestCommand("rest", RestCommand::OPERATION_CREATE);
         $command
             ->setHttpClient($httpClient)
+            ->setHost($host)
             ->setRoute($route)
-            ->setRequestContent($dataObject->reveal())
-        ;
+            ->setRequestContent($dataObject->reveal());
 
         $return = $command->run();
-        $request = $history->getLastRequest();
+        $request = $httpMock->getLastRequest();
 
         $this->assertEquals($serializedString, $request->getBody());
 
     }
 
     /**
-     * @expectedException Digitick\Foundation\Fuse\Command\Http\Exception\NonSerializableException
+     * @expectedException \Digitick\Foundation\Fuse\Command\Http\Exception\NonSerializableException
      */
-    public function testObjectRequestContentNonSerializable () {
-        /** @var History $history */
+    public function testObjectRequestContentNonSerializable()
+    {
+        /** @var Middleware $history */
         $history = null;
-        $httpClient = $this->getHttpClient(200, 'tonton', $history);
+        $httpMock = null;
+        $host = "www.test.com";
+        $httpClient = $this->getHttpClient(200, 'tonton', $history, $httpMock);
         $route = '/tonton';
 
         $serializedString = 'data serialized';
@@ -227,18 +270,21 @@ class RestCommandTest extends \PHPUnit_Framework_TestCase
         $command = new RestCommand("rest", RestCommand::OPERATION_CREATE);
         $command
             ->setHttpClient($httpClient)
+            ->setHost($host)
             ->setRoute($route)
-            ->setRequestContent($dataObject->reveal())
-        ;
+            ->setRequestContent($dataObject->reveal());
 
         $return = $command->run();
     }
 
-    public function testGetUnserialize () {
-        /** @var History $history */
+    public function testGetUnserialize()
+    {
+        /** @var Middleware $history */
         $history = null;
+        $httpMock = null;
+        $host = "www.test.com";
         $dataFromServer = 'data from server';
-        $httpClient = $this->getHttpClient(200, $dataFromServer, $history);
+        $httpClient = $this->getHttpClient(200, $dataFromServer, $history, $httpMock);
         $route = '/tonton';
 
         $dataObject = new Dummy();
@@ -247,12 +293,12 @@ class RestCommandTest extends \PHPUnit_Framework_TestCase
         $command = new RestCommand("rest", RestCommand::OPERATION_CREATE);
         $command
             ->setHttpClient($httpClient)
+            ->setHost($host)
             ->setRoute($route)
-            ->setReturnClass('Digitick\Foundation\Tests\Fuse\Command\Http\Dummy')
-        ;
+            ->setReturnClass('Digitick\Foundation\Tests\Fuse\Command\Http\Dummy');
 
         $return = $command->run();
-        $request = $history->getLastRequest();
+        $request = $httpMock->getLastRequest();
 
         $this->assertInstanceOf('Digitick\Foundation\Tests\Fuse\Command\Http\Dummy', $return);
         $this->assertEquals($dataFromServer, $return->unserializeData);

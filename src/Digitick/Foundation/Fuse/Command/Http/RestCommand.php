@@ -6,29 +6,63 @@ namespace Digitick\Foundation\Fuse\Command\Http;
 
 use Digitick\Foundation\Fuse\Command\Http\Exception\NonSerializableException;
 
-class RestCommand extends HttpCommand
+/**
+ * Class RestCommand
+ * @package Digitick\Foundation\Fuse\Command\Http
+ */
+class RestCommand extends HttpCommand implements HttpCommandInterface
 {
+    /**
+     *
+     */
     const OPERATION_CREATE = 'create';
+    /**
+     *
+     */
     const OPERATION_RETRIEVE = 'retrieve';
+    /**
+     *
+     */
     const OPERATION_UPDATE = 'update';
+    /**
+     *
+     */
     const OPERATION_DELETE = 'delete';
 
+    /**
+     * @var string
+     */
     protected $route = '/';
+    /**
+     * @var array
+     */
     protected $arguments;
 
+    /**
+     * @var
+     */
     protected $operation;
 
+    /**
+     * @var null
+     */
     protected $requestContent = null;
 
-    /** @var string  */
+    /** @var string */
     protected $returnClass = null;
-    /** @var bool  */
+    /** @var bool */
     protected $implementSerializable = false;
     /** @var  \ReflectionClass */
     protected $reflection;
 
-    public function __construct($key, $operation = self::OPERATION_RETRIEVE, $returnClass = null) {
-
+    /**
+     * RestCommand constructor.
+     * @param string $key
+     * @param string $operation
+     * @param null $returnClass
+     */
+    public function __construct($key, $operation = self::OPERATION_RETRIEVE, $returnClass = null)
+    {
         parent::__construct($key);
 
         $this->route = '/';
@@ -36,6 +70,16 @@ class RestCommand extends HttpCommand
 
         $this->setReturnClass($returnClass);
         $this->setOperation($operation);
+    }
+
+    /**
+     * @param $operation
+     * @return $this
+     */
+    public function setOperation($operation)
+    {
+        $this->operation = $operation;
+        return $this;
     }
 
     /**
@@ -54,15 +98,6 @@ class RestCommand extends HttpCommand
     {
         $this->returnClass = $returnClass;
         $this->parseReturnClass();
-        return $this;
-    }
-
-    /**
-     * @param $operation
-     * @return $this
-     */
-    public function setOperation ($operation) {
-        $this->operation = $operation;
         return $this;
     }
 
@@ -89,18 +124,49 @@ class RestCommand extends HttpCommand
      * @param string|int $argumentValue
      * @return $this
      */
-    public function bindArgument ($argumentName, $argumentValue) {
+    public function bindArgument($argumentName, $argumentValue)
+    {
         $this->arguments [$argumentName] = $argumentValue;
         return $this;
     }
 
-    protected function buildRoute () {
+    /**
+     * @return \GuzzleHttp\Promise\Promise|mixed
+     */
+    public function promise()
+    {
+        if ($this->request === null) {
+            $this->prepare();
+        }
+
+        return $this->promise();
+    }
+
+    /**
+     *
+     */
+    public function prepare()
+    {
+        $this->setPath($this->buildRoute());
+
+        $this->defineHttpMethodFromOperation();
+
+        $this->defineRequestContent();
+
+        parent::prepare();
+    }
+
+    /**
+     * @return string
+     */
+    protected function buildRoute()
+    {
         $route = $this->route;
         $queryString = [];
 
         foreach ($this->arguments as $argName => $argValue) {
-            $routeArg = '{'.$argName.'}';
-            if (strstr ($route, $routeArg)) {
+            $routeArg = '{' . $argName . '}';
+            if (strstr($route, $routeArg)) {
                 $route = str_replace($routeArg, $argValue, $route);
             } else {
                 $queryString [$argName] = $argValue;
@@ -113,6 +179,45 @@ class RestCommand extends HttpCommand
 
         $this->info("Request with route : " . $route);
         return $route;
+    }
+
+    /**
+     *
+     */
+    private function defineHttpMethodFromOperation()
+    {
+        switch ($this->operation) {
+            case self::OPERATION_CREATE :
+                $this->setMethod(static::HTTP_METHOD_POST);
+                break;
+            case self::OPERATION_RETRIEVE :
+                $this->setMethod(static::HTTP_METHOD_GET);
+                break;
+            case self::OPERATION_UPDATE :
+                $this->setMethod(static::HTTP_METHOD_PUT);
+                break;
+            case self::OPERATION_DELETE :
+                $this->setMethod(static::HTTP_METHOD_DELETE);
+                break;
+        }
+    }
+
+    /**
+     *
+     */
+    private function defineRequestContent()
+    {
+        $bodyData = $this->getRequestContent();
+        if ($bodyData !== null) {
+            if ($bodyData instanceof \Serializable) { // Si la classe peut etre serialisé, alors on demande le contenu sérialisé
+                $this->setBody($bodyData->serialize());
+            } else if (is_string($bodyData)) { // Sinon si c'est un string, on le prend tel quel
+                $this->setBody($bodyData);
+            } else { // Sinon on renvoie une exception car le contenu ne peut etre envoyé
+                $this->error("Object is not serializable nor a string");
+                throw new NonSerializableException("Object is non serializable");
+            }
+        }
     }
 
     /**
@@ -133,60 +238,11 @@ class RestCommand extends HttpCommand
         return $this;
     }
 
-
-
-    public function run()
+    /**
+     *
+     */
+    private function parseReturnClass()
     {
-        $this->setPath($this->buildRoute());
-
-        $this->defineHttpMethodFromOperation();
-
-        $this->defineRequestContent();
-
-        $serialized = parent::run();
-
-        if ($this->implementSerializable) {
-            $instance = $this->reflection->newInstance();
-            $instance->unserialize ($serialized);
-            return $instance;
-        }
-
-        return $serialized;
-
-    }
-
-    private function defineHttpMethodFromOperation () {
-        switch ($this->operation) {
-            case self::OPERATION_CREATE :
-                $this->setMethod(static::HTTP_METHOD_POST);
-                break;
-            case self::OPERATION_RETRIEVE :
-                $this->setMethod(static::HTTP_METHOD_GET);
-                break;
-            case self::OPERATION_UPDATE :
-                $this->setMethod(static::HTTP_METHOD_PUT);
-                break;
-            case self::OPERATION_DELETE :
-                $this->setMethod(static::HTTP_METHOD_DELETE);
-                break;
-        }
-    }
-
-    private function defineRequestContent () {
-        $bodyData = $this->getRequestContent();
-        if ($bodyData !== null) {
-            if ($bodyData instanceof \Serializable) { // Si la classe peut etre serialisé, alors on demande le contenu sérialisé
-                $this->setBody($bodyData->serialize());
-            } else if (is_string($bodyData)) { // Sinon si c'est un string, on le prend tel quel
-                $this->setBody($bodyData);
-            } else { // Sinon on renvoie une exception car le contenu ne peut etre envoyé
-                $this->error("Object is not serializable nor a string");
-                throw new NonSerializableException("Object is non serializable");
-            }
-        }
-    }
-
-    private function parseReturnClass () {
         if ($this->returnClass == null) {
             $this->implementSerializable = false;
             return;

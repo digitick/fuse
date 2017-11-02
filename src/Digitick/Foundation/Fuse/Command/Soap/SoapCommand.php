@@ -8,18 +8,46 @@ use Digitick\Foundation\Fuse\Command\AbstractCommand;
 use SoapClient;
 use SoapFault;
 
+/**
+ * Class SoapCommand
+ * @package Digitick\Foundation\Fuse\Command\Soap
+ */
 class SoapCommand extends AbstractCommand
 {
+    /**
+     *
+     */
     const STATUS_SUCCESS = 200;
 
     /** @var  SoapClient */
     protected $soapClient = null;
+    /**
+     * @var
+     */
     protected $headers;
+    /**
+     * @var array
+     */
     protected $query = [];
+    /**
+     * @var
+     */
     protected $methodName;
+    /**
+     * @var
+     */
     protected $statusCode;
+    /**
+     * @var
+     */
     protected $content;
+    /**
+     * @var
+     */
     protected $responseHeaders;
+    /**
+     * @var
+     */
     protected $soapResponse;
 
     /**
@@ -32,84 +60,12 @@ class SoapCommand extends AbstractCommand
     }
 
     /**
-     * @return SoapClient
-     */
-    public function getSoapClient()
-    {
-        return $this->soapClient;
-    }
-
-    /**
-     * @param SoapClient $soapClient
-     * @return $this
-     */
-    public function setSoapClient(SoapClient $soapClient)
-    {
-        $this->soapClient = $soapClient;
-        return $this;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getMethodName()
-    {
-        return $this->methodName;
-    }
-
-    /**
-     * @param $methodName
-     * @return $this
-     */
-    public function setMethodName($methodName)
-    {
-        $this->methodName = $methodName;
-        return $this;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getHeaders()
-    {
-        return $this->headers;
-    }
-
-    /**
-     * @param array $headers
-     * @return $this
-     */
-    public function setHeaders(array $headers)
-    {
-        $this->headers = $headers;
-        return $this;
-    }
-
-    /**
      * @param \SoapHeader $header
      * @return $this
      */
     public function addHeader(\SoapHeader $header)
     {
         $this->headers[] = $header;
-        return $this;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getQuery()
-    {
-        return $this->query;
-    }
-
-    /**
-     * @param mixed $query
-     * @return SoapCommand
-     */
-    public function setQuery(array $query)
-    {
-        $this->query = $query;
         return $this;
     }
 
@@ -145,7 +101,11 @@ class SoapCommand extends AbstractCommand
         return $this->soapResponse;
     }
 
-    public function run()
+    /**
+     * @return mixed
+     * @throws SoapFault
+     */
+    public function send()
     {
         if ($this->getSoapClient() === null) {
             throw new \RuntimeException();
@@ -177,5 +137,85 @@ class SoapCommand extends AbstractCommand
         $this->responseHeaders = $this->soapClient->__getLastResponseHeaders();
 
         return $this->content;
+    }
+
+    /**
+     * @return SoapClient
+     */
+    public function getSoapClient()
+    {
+        return $this->soapClient;
+    }
+
+    /**
+     * @param SoapClient $soapClient
+     * @return $this
+     */
+    public function setSoapClient(SoapClient $soapClient)
+    {
+        $this->soapClient = $soapClient;
+        return $this;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getHeaders()
+    {
+        return $this->headers;
+    }
+
+    /**
+     * @param array $headers
+     * @return $this
+     */
+    public function setHeaders(array $headers)
+    {
+        $this->headers = $headers;
+        return $this;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getMethodName()
+    {
+        return $this->methodName;
+    }
+
+    /**
+     * @param $methodName
+     * @return $this
+     */
+    public function setMethodName($methodName)
+    {
+        $this->methodName = $methodName;
+        return $this;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getQuery()
+    {
+        return $this->query;
+    }
+
+    /**
+     * @param mixed $query
+     * @return SoapCommand
+     */
+    public function setQuery(array $query)
+    {
+        $this->query = $query;
+        return $this;
+    }
+
+    /**
+     * @return null
+     */
+    public function getCacheKey()
+    {
+        return null;
     }
 }

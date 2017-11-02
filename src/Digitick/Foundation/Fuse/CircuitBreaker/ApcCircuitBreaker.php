@@ -58,7 +58,8 @@ class ApcCircuitBreaker implements CircuitBreakerInterface
         $this->circuitBreaker->reportFailure($key);
     }
 
-    public function setServiceSettings ($key, $maxFailures, $retryTimeout) {
-        return $this->circuitBreaker->setServiceSettings ($key, $maxFailures, $retryTimeout);
+    public function setServiceSettings($key, $maxFailures, $retryTimeout)
+    {
+        return $this->circuitBreaker->setServiceSettings($key, $maxFailures, $retryTimeout);
     }
 }

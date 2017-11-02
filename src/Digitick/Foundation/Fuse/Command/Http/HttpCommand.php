@@ -15,10 +15,14 @@ use Digitick\Foundation\Fuse\Command\Http\Exception\ServerException;
 use Digitick\Foundation\Fuse\Command\Http\Exception\TemporaryUnavailableException;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Exception\TransferException;
-use GuzzleHttp\Stream\Stream;
+use GuzzleHttp\Promise\Promise;
+use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Psr7\Uri;
+use Psr\Http\Message\ResponseInterface;
 
-class HttpCommand extends AbstractCommand
+class HttpCommand extends AbstractCommand implements HttpCommandInterface
 {
     const HTTP_METHOD_GET = 'GET';
     const HTTP_METHOD_POST = 'POST';
@@ -41,18 +45,92 @@ class HttpCommand extends AbstractCommand
     protected $password;
     protected $method = self::HTTP_METHOD_GET;
     protected $body = '';
-
+    protected $request = null;
     protected $statusCode;
     protected $content;
     protected $responseHeaders;
 
     /**
-     * HttpCommand constructor.
-     * @param Client $httpClient
+     * @return mixed
      */
-    public function __construct($key)
+    public function getUser()
     {
-        parent::__construct($key);
+        return $this->user;
+    }
+
+    /**
+     * @param mixed $user
+     * @return HttpCommand
+     */
+    public function setUser($user)
+    {
+        $this->user = $user;
+        return $this;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getPassword()
+    {
+        return $this->password;
+    }
+
+    /**
+     * @param mixed $password
+     * @return HttpCommand
+     */
+    public function setPassword($password)
+    {
+        $this->password = $password;
+        return $this;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getStatusCode()
+    {
+        return $this->statusCode;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getContent()
+    {
+        return $this->content;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getResponseHeaders()
+    {
+        return $this->responseHeaders;
+    }
+
+    public function send()
+    {
+        if ($this->getHttpClient() === null) {
+            throw new \RuntimeException();
+        }
+        if ($this->request === null) {
+            $this->prepare();
+        }
+        try {
+            $this->debug("Send request");
+            $response = $this->httpClient->send($this->request);
+        } catch (TransferException $exc) {
+            throw $this->exceptionFactory($exc);
+        }
+
+        $this->statusCode = $response->getStatusCode();
+        $this->debug("Returned status code = " . $this->statusCode);
+        $this->content = $response->getBody()->getContents();
+        $this->responseHeaders = $response->getHeaders();
+
+        return $this->content;
     }
 
     /**
@@ -70,6 +148,81 @@ class HttpCommand extends AbstractCommand
     public function setHttpClient(Client $httpClient)
     {
         $this->httpClient = $httpClient;
+        return $this;
+    }
+
+    public function prepare()
+    {
+        $this->request = null;
+
+        $this->debug(sprintf("Create request with method=%s, scheme=%s, host=%s, port=%d, path=%s",
+            $this->getMethod(),
+            $this->getScheme(),
+            $this->getHost(),
+            $this->getPort(),
+            $this->getPath()
+        ));
+
+        $uri = new Uri();
+        $uri = $uri
+            ->withScheme($this->getScheme())
+            ->withHost($this->getHost())
+            ->withPort($this->getPort())
+            ->withPath($this->getPath());
+
+        $headers = [];
+        if ($this->headers != null)
+            $headers = $this->getHeaders();
+
+        if ($this->query != null) {
+            $uri = $uri->withQuery(http_build_query($this->getQuery()));
+        }
+        $request = new Request
+        (
+            $this->getMethod(),
+            $uri,
+            $headers,
+            $this->getBody()
+        );
+
+        $this->request = $request;
+
+        return $this;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getMethod()
+    {
+        return $this->method;
+    }
+
+    /**
+     * @param mixed $method
+     * @return HttpCommand
+     */
+    public function setMethod($method)
+    {
+        $this->method = $method;
+        return $this;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getScheme()
+    {
+        return $this->scheme;
+    }
+
+    /**
+     * @param mixed $scheme
+     * @return HttpCommand
+     */
+    public function setScheme($scheme)
+    {
+        $this->scheme = $scheme;
         return $this;
     }
 
@@ -148,90 +301,18 @@ class HttpCommand extends AbstractCommand
     /**
      * @return mixed
      */
-    public function getScheme()
-    {
-        return $this->scheme;
-    }
-
-    /**
-     * @param mixed $scheme
-     * @return HttpCommand
-     */
-    public function setScheme($scheme)
-    {
-        $this->scheme = $scheme;
-        return $this;
-    }
-
-    /**
-     * @return mixed
-     */
     public function getQuery()
     {
         return $this->query;
     }
 
     /**
-     * @param mixed $query
-     * @return HttpCommand
+     * @param array $query
+     * @return $this
      */
-    public function setQuery($query)
+    public function setQuery(array $query)
     {
         $this->query = $query;
-        return $this;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getUser()
-    {
-        return $this->user;
-    }
-
-    /**
-     * @param mixed $user
-     * @return HttpCommand
-     */
-    public function setUser($user)
-    {
-        $this->user = $user;
-        return $this;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getPassword()
-    {
-        return $this->password;
-    }
-
-    /**
-     * @param mixed $password
-     * @return HttpCommand
-     */
-    public function setPassword($password)
-    {
-        $this->password = $password;
-        return $this;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getMethod()
-    {
-        return $this->method;
-    }
-
-    /**
-     * @param mixed $method
-     * @return HttpCommand
-     */
-    public function setMethod($method)
-    {
-        $this->method = $method;
         return $this;
     }
 
@@ -253,71 +334,8 @@ class HttpCommand extends AbstractCommand
         return $this;
     }
 
-    /**
-     * @return mixed
-     */
-    public function getStatusCode()
+    private function exceptionFactory(TransferException $exc)
     {
-        return $this->statusCode;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getContent()
-    {
-        return $this->content;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getResponseHeaders()
-    {
-        return $this->responseHeaders;
-    }
-
-    public function run()
-    {
-        if ($this->getHttpClient() === null) {
-            throw new \RuntimeException();
-        }
-
-        $this->debug(sprintf("Create request with method=%s, scheme=%s, host=%s, port=%d, path=%s",
-            $this->getMethod(),
-            $this->getScheme(),
-            $this->getHost(),
-            $this->getPort(),
-            $this->getPath()
-        ));
-        $request = $this->httpClient->createRequest($this->getMethod(), '', [
-
-        ]);
-        $request->setHost ($this->getHost ());
-        $request->setPath ($this->getPath ());
-        $request->setPort ($this->getPort() );
-        $request->setScheme ($this->getScheme ());
-
-        $request->setBody (Stream::factory($this->getBody ()));
-        if ($this->headers != null) $request->setHeaders ($this->getHeaders ());
-        if ($this->query != null) $request->setQuery ($this->getQuery ());
-
-        try {
-            $this->debug("Send request");
-            $response = $this->httpClient->send($request);
-        } catch (TransferException $exc) {
-            throw $this->ExceptionFactory($exc);
-        }
-
-        $this->statusCode = $response->getStatusCode();
-        $this->debug("Returned status code = " . $this->statusCode);
-        $this->content = $response->getBody()->getContents();
-        $this->responseHeaders = $response->getHeaders();
-
-        return $this->content;
-    }
-
-    private function ExceptionFactory (TransferException $exc) {
         $this->error(sprintf("Transfer exception caught. Type : %s, status code = %s, message = %s",
                 get_class($exc),
                 $exc->getCode(),
@@ -377,5 +395,48 @@ class HttpCommand extends AbstractCommand
         }
 
         return $thrownException;
+    }
+
+    public function sendAsync()
+    {
+        /** @var Promise $promise */
+        $promise = $this->promise();
+        return $promise->wait();
+    }
+
+    public function promise()
+    {
+        if ($this->getHttpClient() === null) {
+            throw new \RuntimeException();
+        }
+        if ($this->request === null) {
+            $this->prepare();
+        }
+        try {
+            $this->debug("Send request");
+            /** @var Promise $promise */
+            $promise = $this->httpClient->sendAsync($this->request);
+            $promise->then
+            (
+                function (ResponseInterface $response) {
+                    $this->statusCode = $response->getStatusCode();
+                    $this->debug("Returned status code = " . $this->statusCode);
+                    $this->content = $response->getBody()->getContents();
+                    $this->responseHeaders = $response->getHeaders();
+                },
+                function (RequestException $e) {
+                    throw $this->exceptionFactory(new TransferException($e->getMessage(), $e->getCode()));
+                }
+            );
+        } catch (TransferException $exc) {
+            throw $this->exceptionFactory($exc);
+        }
+
+        return $promise;
+    }
+
+    public function getCacheKey()
+    {
+        return null;
     }
 }

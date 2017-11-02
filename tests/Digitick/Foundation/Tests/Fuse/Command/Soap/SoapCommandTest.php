@@ -5,23 +5,18 @@ namespace Digitick\Foundation\Tests\Fuse\Command\Http;
 
 
 use Digitick\Foundation\Fuse\Command\Soap\SoapCommand;
-use SoapClient;
 use GuzzleHttp\Message\Response;
 use GuzzleHttp\Stream\Stream;
 use GuzzleHttp\Subscriber\History;
 use GuzzleHttp\Subscriber\Mock;
 
-class SoapCommandTest extends \PHPUnit_Framework_TestCase
+class SoapCommandTest extends \PHPUnit\Framework\TestCase
 {
-    private function getSoapClient () {
-        $soapClient = new SoapClient('http://www.webservicex.net/geoipservice.asmx?WSDL');
-        return $soapClient;
-    }
-
     /**
      *
      */
-    public function testExceptionHeaders () {
+    public function testExceptionRuntime()
+    {
 
         $soapClient = $this->getSoapClient();
 
@@ -29,36 +24,47 @@ class SoapCommandTest extends \PHPUnit_Framework_TestCase
 
         $command->setSoapClient($soapClient);
 
-        $this->setExpectedException('\RuntimeException');
+        $this->expectException('\RuntimeException');
 
-        $result = $command->run();
+        $command->send();
     }
 
-    /**
-     *
-     */
-    public function testExceptionMethod () {
-
-        $soapClient = $this->getSoapClient();
-
-        $command = new SoapCommand("test");
-        $soapHeaderParams = array(
-            'login'    =>    'testLogin',
-            'password'    =>    'testPwd');
-        $command->addHeader(
-            new \SoapHeader('foo', 'bar', $soapHeaderParams)
-        );
-        $command->setSoapClient($soapClient);
-
-        $this->setExpectedException('\RuntimeException');
-
-        $result = $command->run();
+    private function getSoapClient()
+    {
+        $soapClientMock = $this->getMockFromWsdl('http://www.webservicex.com/globalweather.asmx?WSDL', '', '', ['GetWeather']);
+        return $soapClientMock;
     }
 
     /**
      * @dataProvider methodProvider
      */
-    public function testMethod($methodName) {
+    public function testRun200($methodName)
+    {
+
+        $soapClient = $this->getSoapClient();
+
+        $command = new SoapCommand("test");
+
+        $getWeatherHttpPostIn = new \stdClass();
+        $getWeatherHttpPostIn->CityName = "Foo";
+        $getWeatherHttpPostIn->CountryName = 'Bar';
+
+        $getWeatherHttpPostOut = new \stdClass();
+        $getWeatherHttpPostOut->GetWeatherResult = 'Data Not Found';
+
+        $command->setSoapClient($soapClient)
+            ->setMethodName($methodName)
+            ->setQuery([$getWeatherHttpPostIn]);
+
+        $result = $command->send();
+        $this->assertEquals($getWeatherHttpPostOut, $result);
+    }
+
+    /**
+     * @dataProvider methodProvider
+     */
+    public function testMethod($methodName)
+    {
         $command = new SoapCommand("test");
         $command
             ->setMethodName($methodName);
@@ -66,11 +72,12 @@ class SoapCommandTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($methodName, $command->getMethodName());
     }
 
-    public function testHeaders () {
+    public function testHeaders()
+    {
         $command = new SoapCommand("test");
         $soapHeaderParams = array(
-            'login'    =>    'testLogin',
-            'password'    =>    'testPwd');
+            'login' => 'testLogin',
+            'password' => 'testPwd');
         $headerObject = new \SoapHeader('foo', 'bar', $soapHeaderParams);
         $command->addHeader(
             $headerObject
@@ -82,24 +89,27 @@ class SoapCommandTest extends \PHPUnit_Framework_TestCase
     /**
      * @expectedException \RuntimeException
      */
-    public function testCallWithoutSoapClient ()
+    public function testCallWithoutSoapClient()
     {
         $command = new SoapCommand("test");
 
         $soapHeaderParams = array(
-            'login'    =>    'testLogin',
-            'password'    =>    'testPwd');
+            'login' => 'testLogin',
+            'password' => 'testPwd');
         $headerObject = new \SoapHeader('foo', 'bar', $soapHeaderParams);
         $command
             ->addHeader($headerObject)
             ->setMethodName('test');
 
-        $result = $command->run();
+        $this->expectException('\RuntimeException');
+
+        $command->send();
     }
 
-    public function methodProvider () {
+    public function methodProvider()
+    {
         return [
-            ['GetGeoIP']
+            ['GetWeather']
         ];
     }
 }
