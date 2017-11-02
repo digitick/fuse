@@ -306,7 +306,7 @@ class HttpCommand extends AbstractCommand
             $this->debug("Send request");
             $response = $this->httpClient->send($request);
         } catch (TransferException $exc) {
-            throw $this->ExceptionFactory($exc);
+            throw $this->exceptionFactory($exc);
         }
 
         $this->statusCode = $response->getStatusCode();
@@ -317,7 +317,7 @@ class HttpCommand extends AbstractCommand
         return $this->content;
     }
 
-    private function ExceptionFactory (TransferException $exc) {
+    private function exceptionFactory (TransferException $exc) {
         $this->error(sprintf("Transfer exception caught. Type : %s, status code = %s, message = %s",
                 get_class($exc),
                 $exc->getCode(),
@@ -374,6 +374,9 @@ class HttpCommand extends AbstractCommand
                     $this->error("Throw exception of type ServerException");
                     $thrownException = new ServerException ($exc->getMessage(), $exc->getCode(), $exc);
             }
+        } else {
+            $this->error("Throw exception of type InternalErrorException");
+            $thrownException = new InternalErrorException($exc->getMessage(), $exc->getCode(), $exc);
         }
 
         return $thrownException;
