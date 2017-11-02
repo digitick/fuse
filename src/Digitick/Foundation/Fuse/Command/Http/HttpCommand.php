@@ -392,6 +392,9 @@ class HttpCommand extends AbstractCommand implements HttpCommandInterface
                     $this->error("Throw exception of type ServerException");
                     $thrownException = new ServerException ($exc->getMessage(), $exc->getCode(), $exc);
             }
+        } else {
+            $this->error("Throw exception of type InternalErrorException");
+            $thrownException = new InternalErrorException($exc->getMessage(), $exc->getCode(), $exc);
         }
 
         return $thrownException;
