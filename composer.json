@@ -15,7 +15,7 @@
     }
   ],
   "autoload": {
-    "psr-4" : { "": "src/" }
+    "psr-4" : { "Digitick\\Foundation\\Fuse\\": "src/Digitick/Foundation/Fuse" }
   },
   "require" : {
     "php": ">=5.4",
