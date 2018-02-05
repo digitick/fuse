@@ -3,7 +3,7 @@
   "description": "External service accessor",
   "minimum-stability": "dev",
   "prefer-stable": true,
-  "license": "Apache 2",
+  "license": "Apache-2.0",
   "authors": [
     {
       "name": "Josselin Donnat",
