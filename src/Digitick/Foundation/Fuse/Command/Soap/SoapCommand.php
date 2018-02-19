@@ -117,10 +117,11 @@ class SoapCommand extends AbstractCommand
             throw new \RuntimeException();
 
         try {
-            $this->debug("Send request");
+            $this->debug("Send request " . $this->getMethodName());
             $response = $this->soapClient->__soapCall($this->getMethodName(), $this->getQuery());
-            $this->info($this->soapClient->__getLastResponse());
+            $this->logSoapRequestAndResponse();
         } catch (SoapFault $fault) {
+            $this->logSoapRequestAndResponse();
             $this->error(sprintf("Transfer exception caught. Type : %s, status code = %s, message = %s",
                     get_class($fault),
                     $fault->getCode(),
@@ -217,5 +218,16 @@ class SoapCommand extends AbstractCommand
     public function getCacheKey()
     {
         return null;
+    }
+
+    /**
+     * logs SOAP request and SOAP Response
+     */
+    private function logSoapRequestAndResponse()
+    {
+        $this->info("Request:");
+        $this->info($this->soapClient->__getLastRequest());
+        $this->info("Response:");
+        $this->info($this->soapClient->__getLastResponse());
     }
 }
