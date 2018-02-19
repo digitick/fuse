@@ -65,19 +65,19 @@ class CommandHandler
         try {
             $result = $this->executeCommand($command);
 
-            $this->log(LogLevel::INFO, "Success for command group " . $command->getKey());
+            $this->log(LogLevel::DEBUG, "Success for command group " . $command->getKey());
             $this->circuitBreaker->reportSuccess($command->getKey());
             if ($isCacheable) {
                 $this->log(LogLevel::DEBUG, "Store result in cache. Key = $cacheKey");
                 $this->cacheManager->set($cacheKey, $result, $command->getTtl());
             }
         } catch (LogicException $exc) {
-            $this->log(LogLevel::DEBUG, "Logic exception. Call onLogicError");
-            $this->log(LogLevel::INFO, "Success for command group " . $command->getKey());
-            $this->circuitBreaker->reportSuccess($commaqnd->getKey());
+            $this->log(LogLevel::ERROR, "Logic exception. Call onLogicError");
+            $this->log(LogLevel::ERROR, "Failure for command group " . $command->getKey());
+            $this->circuitBreaker->reportSuccess($command->getKey());
             return $command->onLogicError($exc);
         } catch (ServiceException $exc) {
-            $this->log(LogLevel::DEBUG, "Service exception. Call onServiceError");
+            $this->log(LogLevel::ERROR, "Service exception. Call onServiceError");
             $this->log(LogLevel::ERROR, "Failure for command group " . $command->getKey());
             $this->circuitBreaker->reportFailure($command->getKey());
             return $command->onServiceError($exc);
