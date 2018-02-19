@@ -225,9 +225,9 @@ class SoapCommand extends AbstractCommand
      */
     private function logSoapRequestAndResponse()
     {
-        $this->info("Request:");
-        $this->info($this->soapClient->__getLastRequest());
-        $this->info("Response:");
-        $this->info($this->soapClient->__getLastResponse());
+        $this->debug("Request:");
+        $this->debug($this->soapClient->__getLastRequest());
+        $this->debug("Response:");
+        $this->debug($this->soapClient->__getLastResponse());
     }
 }
