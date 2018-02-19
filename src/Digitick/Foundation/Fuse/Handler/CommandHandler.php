@@ -43,7 +43,7 @@ class CommandHandler
             $command->setLogger($this->logger);
         }
 
-        $this->info("Exceute command " . get_class($command));
+        $this->debug("Execute command " . get_class($command));
 
         if ($isCacheable) {
             $cacheKey = $this->getCommandCacheKey($command);
@@ -74,7 +74,7 @@ class CommandHandler
         } catch (LogicException $exc) {
             $this->log(LogLevel::DEBUG, "Logic exception. Call onLogicError");
             $this->log(LogLevel::INFO, "Success for command group " . $command->getKey());
-            $this->circuitBreaker->reportSuccess($command->getKey());
+            $this->circuitBreaker->reportSuccess($commaqnd->getKey());
             return $command->onLogicError($exc);
         } catch (ServiceException $exc) {
             $this->log(LogLevel::DEBUG, "Service exception. Call onServiceError");
