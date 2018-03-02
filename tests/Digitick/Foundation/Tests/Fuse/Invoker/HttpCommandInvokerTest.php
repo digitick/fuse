@@ -1,10 +1,10 @@
 <?php
 
 
-namespace Digitick\Foundation\Tests\Fuse\Handler;
+namespace Digitick\Foundation\Tests\Fuse\Invoker;
 
 
-use Digitick\Foundation\Fuse\Handler\HttpCommandInvoker;
+use Digitick\Foundation\Fuse\Invoker\HttpCommandInvoker;
 use GuzzleHttp\Promise\Promise;
 use GuzzleHttp\Promise\PromiseInterface;
 use Prophecy\Argument;

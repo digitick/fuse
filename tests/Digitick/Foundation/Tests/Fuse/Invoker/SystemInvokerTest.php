@@ -1,10 +1,10 @@
 <?php
 
 
-namespace Digitick\Foundation\Tests\Fuse\Handler;
+namespace Digitick\Foundation\Tests\Fuse\Invoker;
 
 
-use Digitick\Foundation\Fuse\Handler\SystemInvoker;
+use Digitick\Foundation\Fuse\Invoker\SystemInvoker;
 use Prophecy\Argument;
 
 class SystemInvokerTest extends \PHPUnit_Framework_TestCase

@@ -1,7 +1,7 @@
 <?php
 
 
-namespace Digitick\Foundation\Fuse\Handler;
+namespace Digitick\Foundation\Fuse\Invoker;
 
 use Digitick\Foundation\Fuse\Command\SystemCommand;
 use Digitick\Foundation\Fuse\Exception\{
