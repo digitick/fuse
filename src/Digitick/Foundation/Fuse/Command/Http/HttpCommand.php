@@ -331,22 +331,23 @@ class HttpCommand extends AbstractCommand
             switch ($exc->getCode()) {
 
                 case NotFoundException::STATUS_CODE :
-                    $this->warning("Throw exception of type NotFoundException");
+                    $this->debug("Throw exception of type NotFoundException");
                     $thrownException = new NotFoundException ($exc->getMessage(), $exc->getCode(), $exc);
                     break;
 
                 case ForbiddenException::STATUS_CODE :
-                    $this->warning("Throw exception of type ForbiddenException");
+                    //avoid too many verbose logs on production
+                    $this->debug("Throw exception of type ForbiddenException");
                     $thrownException = new ForbiddenException($exc->getMessage(), $exc->getCode(), $exc);
                     break;
 
                 case MethodNotAllowedException::STATUS_CODE :
-                    $this->warning("Throw exception of type MethodNotAllowed");
+                    $this->debug("Throw exception of type MethodNotAllowed");
                     $thrownException = new MethodNotAllowedException($exc->getMessage(), $exc->getCode(), $exc);
                     break;
 
                 case BadRequestException::STATUS_CODE :
-                    $this->warning("Throw exception of type MethodNotAllowed");
+                    $this->debug("Throw exception of type BadRequestException");
                     $thrownException = new BadRequestException($exc->getMessage(), $exc->getCode(), $exc);
                     break;
 
@@ -367,7 +368,7 @@ class HttpCommand extends AbstractCommand
                     break;
 
                 case TemporaryUnavailableException::STATUS_CODE :
-                    $this->error("Throw exception of type NotImplementedException");
+                    $this->error("Throw exception of type TemporaryUnavailableException");
                     $thrownException = new TemporaryUnavailableException($exc->getMessage(), $exc->getCode(), $exc);
                     break;
 

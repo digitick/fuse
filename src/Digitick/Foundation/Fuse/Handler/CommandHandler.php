@@ -72,8 +72,8 @@ class CommandHandler
                 $this->cacheManager->set($cacheKey, $result, $command->getTtl());
             }
         } catch (LogicException $exc) {
-            $this->log(LogLevel::ERROR, "Logic exception. Call onLogicError");
-            $this->log(LogLevel::ERROR, "Failure for command group " . $command->getKey());
+            $this->log(LogLevel::DEBUG, "Logic exception. Call onLogicError");
+            $this->log(LogLevel::DEBUG, "Failure for command group " . $command->getKey());
             $this->circuitBreaker->reportSuccess($command->getKey());
             return $command->onLogicError($exc);
         } catch (ServiceException $exc) {
