@@ -122,12 +122,17 @@ class SoapCommand extends AbstractCommand
             $this->logSoapRequestAndResponse();
         } catch (SoapFault $fault) {
             $this->logSoapRequestAndResponse();
-            $this->error(sprintf("Transfer exception caught. Type : %s, status code = %s, message = %s",
+            $errorLog = sprintf("Transfer exception caught. Type : %s, status code = %s, message = %s",
                     get_class($fault),
                     $fault->getCode(),
                     $fault->getMessage()
-                )
             );
+            if ($fault->getCode() < 500) {
+                //avoid too many verbose logs on production
+                $this->debug($errorLog);
+            } else {
+                $this->error($errorLog);
+            }
             throw $fault;
         }
 

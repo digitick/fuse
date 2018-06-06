@@ -158,7 +158,7 @@ class HttpCommandInvoker extends InvokerAbstract
             }
         } catch (LogicException $exc) {
             $this->log(LogLevel::DEBUG, "Logic exception. Call onLogicError");
-            $this->log(LogLevel::INFO, "Success for command group " . $command->getKey());
+            $this->log(LogLevel::DEBUG, "Success for command group " . $command->getKey());
             $this->circuitBreaker->reportSuccess($command->getKey());
             return $command->onLogicError($exc);
         } catch (ServiceException $exc) {
